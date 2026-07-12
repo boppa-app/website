@@ -351,12 +351,12 @@ playback:
             originalSetActionHandler(action, handler);
           };
 
-          originalSetActionHandler('play', function() { postEvent({type: 'playCommand'}); });
-          originalSetActionHandler('pause', function() { postEvent({type: 'pauseCommand'}); });
+          originalSetActionHandler('play', function() { if (window.boppaPlay) window.boppaPlay(); });
+          originalSetActionHandler('pause', function() { if (window.boppaPause) window.boppaPause(); });
           originalSetActionHandler('seekbackward', null);
           originalSetActionHandler('seekforward', null);
           originalSetActionHandler('seekto', function(details) {
-            postEvent({type: 'seekCommand', seekTime: details && details.seekTime != null ? details.seekTime : 0});
+            if (window.boppaSeek) window.boppaSeek((details && details.seekTime != null ? details.seekTime : 0) * 1000);
           });
           originalSetActionHandler('previoustrack', function() { postEvent({type: 'previoustrackCommand'}); });
           originalSetActionHandler('nexttrack', function() { postEvent({type: 'nexttrackCommand'}); });
