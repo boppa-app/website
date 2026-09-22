@@ -23,7 +23,7 @@ export function SiteFooter() {
           <p className="text-white/60 font-medium">Community</p>
           <div className="space-y-2">
             <a
-              href="https://github.com/boppa-app/Boppa"
+              href="https://github.com/boppa-app"
               target="_blank"
               rel="noopener noreferrer"
               className="block text-muted-foreground hover:text-foreground transition-colors"

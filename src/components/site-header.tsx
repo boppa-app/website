@@ -40,7 +40,7 @@ export function SiteHeader() {
           <DiscordIcon className="w-[18px] h-[18px]" />
         </a>
         <a
-          href="https://github.com/boppa-app/Boppa"
+          href="https://github.com/boppa-app"
           target="_blank"
           rel="noopener noreferrer"
           aria-label="GitHub"
