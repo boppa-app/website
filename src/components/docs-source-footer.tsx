@@ -1,6 +1,6 @@
 import type { Doc } from "~/docs";
 
-const GITHUB_BASE_URL = "https://github.com/boppa-app/Boppa/blob/main/website";
+const GITHUB_BASE_URL = "https://github.com/boppa-app/website/blob/main";
 
 export function DocsSourceFooter({ doc }: { doc: Doc }) {
   const sourceUrl = `${GITHUB_BASE_URL}/${doc.sourcePath}`;
