@@ -44,6 +44,10 @@ The script must call the global `postResult(data)` function exactly once with th
 `postResult` must be called with an object containing an `items` array. The shape of each item
 depends on the category.
 
+Boppa stores the tracks, albums, playlists, and artists it sees, and merges what a script returns into what it already knows. When an item Boppa has already stored comes back, every optional field that's omitted (or `null`) keeps its stored value, and an empty `title` or `name` is ignored. Only values the script actually provides overwrite stored ones.
+
+That means a script should leave out anything it doesn't know rather than fill in a placeholder. Don't return `subtitle: "Unknown Artist"`, `duration: 0`, or an empty string for artwork or a URL when the page just doesn't show that value, because Boppa would store the placeholder over real data it got from a fuller page.
+
 ### `songs`, `videos`
 
 ```js
