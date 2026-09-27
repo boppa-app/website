@@ -69,7 +69,15 @@ postResult({
 
 `metadata` is opaque to Boppa: it may be any JSON object and is carried through unchanged to the [`boppaLoad`](/docs/media-sources/playback#track-data) call for the player page to interpret.
 
-The nested `artists` and `albums` arrays let a search result carry enough information for Boppa to offer *"Go to Artist"* and *"Go to Album"* actions without an additional lookup.
+The nested `artists` and `albums` arrays let a search result carry enough information for Boppa to offer actions such as *"Go to Artist"* and *"Go to Album"* without an additional lookup.
+
+Boppa remembers a track's artists and albums once it has stored the track, and treats an omitted field differently from an empty array when it sees the track again:
+
+- **Omitted** (or `null`): the script doesn't know. Boppa keeps whatever artists or albums it already has for the track.
+- **Empty array** (`[]`): the track has none. Boppa removes any artists or albums it had for the track.
+- **Non-empty array**: Boppa replaces the track's artists or albums with exactly these.
+
+So only return `[]` when you're sure the track has no artists or albums, otherwise omit the field instead. An array whose entries are all missing a required `id` and `name`/`title` (artist/album) is omitted.
 
 ### `albums`, `playlists`
 

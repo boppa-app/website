@@ -57,6 +57,8 @@ postResult({
 });
 ```
 
+Omit `artists` or `albums` when the script doesn't know them, and return `[]` only when the track has none. See [Result shape](/docs/media-sources/search#result-shape) for how Boppa treats each case.
+
 ### `list.artistSongs`, `list.artistVideos`
 
 These return a page of tracks, using the same item shape as `list.album` and `list.playlist` above. They're called when the corresponding section of an artist's page is opened.
@@ -145,6 +147,8 @@ postResult({
   albums:  [ { id, title, subtitle, lowResArtworkUrl, highResArtworkUrl } ] // optional
 });
 ```
+
+Omit `artists` or `albums` when the script doesn't know them, and return `[]` only when the track has none. See [Result shape](/docs/media-sources/search#result-shape) for how Boppa treats each case.
 
 ### `get.album`, `get.playlist`
 
