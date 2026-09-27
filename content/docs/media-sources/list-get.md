@@ -10,6 +10,8 @@ category: Media Sources
 
 Where `data.search` scripts answer "what matches this query", `data.list` and `data.get` scripts answer "what is inside this album, playlist, or artist" and "what are the details of this single item". Both groups run in the same JavaScript environment as search scripts, see [Script Environment](/docs/media-sources/script-environment) for the full list of globals available.
 
+Every track, album, playlist, and artist these scripts return is merged into what Boppa has already stored, exactly like search results. A field that's omitted (or `null`) keeps its stored value, an empty `title` or `name` is ignored. Only values the script provides overwrite stored ones. So leave out a field rather than returning a placeholder. See [Search Scripts: Result shape](/docs/media-sources/search#result-shape) for the full rules.
+
 ## `data.list`
 
 ```yaml
@@ -57,7 +59,7 @@ postResult({
 });
 ```
 
-Omit `artists` or `albums` when the script doesn't know them, and return `[]` only when the track has none. See [Result shape](/docs/media-sources/search#result-shape) for how Boppa treats each case.
+Leave out any field the page doesn't show, including `artists` and `albums`, rather than returning a placeholder. Return `[]` for `artists` or `albums` only when the track has none. See [Result shape](/docs/media-sources/search#result-shape) for how Boppa treats each case.
 
 ### `list.artistSongs`, `list.artistVideos`
 
@@ -148,7 +150,7 @@ postResult({
 });
 ```
 
-Omit `artists` or `albums` when the script doesn't know them, and return `[]` only when the track has none. See [Result shape](/docs/media-sources/search#result-shape) for how Boppa treats each case.
+Leave out any field the page doesn't show, including `artists` and `albums`, rather than returning a placeholder. Return `[]` for `artists` or `albums` only when the track has none. See [Result shape](/docs/media-sources/search#result-shape) for how Boppa treats each case.
 
 ### `get.album`, `get.playlist`
 
