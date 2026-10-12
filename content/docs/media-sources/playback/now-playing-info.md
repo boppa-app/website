@@ -1,16 +1,18 @@
 ---
-title: iOS Playback
-description: Why iOS player pages need a silent keepalive audio element, and the constraints that shape how it's built.
-nav: iOS
-order: 15
+title: iOS Now Playing Info
+description: How a player page drives the lock screen and Now Playing info on iOS.
+nav: iOS Now Playing Info
+order: 18
 category: Media Sources
 ---
 
-# Now Playing Info
+# iOS Now Playing Info
 
 Traditionally, iOS apps utilize [MPRemoteCommandCenter](https://developer.apple.com/documentation/mediaplayer/mpremotecommandcenter) and [MPNowPlayingInfoCenter](https://developer.apple.com/documentation/mediaplayer/mpnowplayinginfocenter) to handle playback controls and integrate with iOS's Now Playing Info.
 
-However, when using a WebView for audio playback, these will not work. [WebView controls AudioSession and NowPlayingInfo privately in iOS](https://bugs.webkit.org/show_bug.cgi?id=167788).
+Boppa does exactly that for sources that [play from the container](/docs/media-sources/playback), so this page only applies to [player pages](/docs/media-sources/playback/player-page).
+
+When a WebView plays the audio, these will not work. [WebView controls AudioSession and NowPlayingInfo privately in iOS](https://bugs.webkit.org/show_bug.cgi?id=167788).
 
 ## Using `navigator.mediaSession`
 
@@ -21,7 +23,7 @@ navigator.mediaSession.metadata = new MediaMetadata({
   title: 'Title',
   artist: 'Artist',
   artwork: [{ src: 'https://example.com/example.png' }]
-});
+})
 ```
 
 To modify play/pause, seek, and navigation controls, register the appropriate handlers on `navigator.mediaSession`:
@@ -35,7 +37,7 @@ navigator.mediaSession.setActionHandler(
   callback
 )
 ```
-These are what should call back into `window.boppaPlay`/`boppaPause`/`boppaSeek`, as well as `postEvent` for `previoustrackCommand`/`nexttrackCommand`.
+These are what should call the page's registered `play`/`pause`/`seek` functions, as well as `boppa.postEvent` for `previoustrackCommand`/`nexttrackCommand`.
 
 `navigator.mediaSession.setPositionState()` drives the scrubber, and you can set `navigator.mediaSession.playbackState` to `'playing'`/`'paused'` on every play/pause to keep it in sync.
 
@@ -44,8 +46,8 @@ navigator.mediaSession.setPositionState({
   duration: 213,
   position: 42,
   playbackRate: 1.0
-});
-navigator.mediaSession.playbackState = 'playing';
+})
+navigator.mediaSession.playbackState = 'playing'
 ```
 
 Now Playing Info isn't owned by the page as a whole, it's owned by whichever specific `HTMLMediaElement` on the page holds an active `MediaElementSession`. If no such element actually exists and is playing, there's no session for iOS to route lock screen commands through.

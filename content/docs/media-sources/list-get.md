@@ -1,172 +1,123 @@
 ---
-title: List & Get Scripts
-description: The data.list and data.get scripts that back album, playlist, artist, and track radio.
+title: List & Get
+description: The list and get handlers that back tracklist pages, profile pages, and track radio.
 nav: List & Get
-order: 13
+order: 15
 category: Media Sources
 ---
 
-# List & Get Scripts
+# List & Get
 
-Where `data.search` scripts answer "what matches this query", `data.list` and `data.get` scripts answer "what is inside this album, playlist, or artist" and "what are the details of this single item". Both groups run in the same JavaScript environment as search scripts, see [Script Environment](/docs/media-sources/script-environment) for the full list of globals available.
+Where search handlers answer "what matches this query", `list` handlers answer "what is inside this tracklist or profile" and `get` handlers answer "what are the details of this single item". They run in the same [container](/docs/media-sources/container) as search handlers, with the same calling convention.
 
-Every track, album, playlist, and artist these scripts return is merged into what Boppa has already stored, exactly like search results. A field that's omitted (or `null`) keeps its stored value, an empty `title` or `name` is ignored. Only values the script provides overwrite stored ones. So leave out a field rather than returning a placeholder. See [Search Scripts: Result shape](/docs/media-sources/search#result-shape) for the full rules.
+Every track, profile, and tracklist these handlers return is merged into what Boppa has already stored, exactly like search results. A field that's omitted (or `null`) keeps its stored value, an empty `title` or `name` is ignored. Only values the handler provides overwrite stored ones. So leave out a field rather than returning a placeholder. See [Search: Result shape](/docs/media-sources/search#result-shape) for the full rules and the item shapes.
 
-## `data.list`
+The fields each handler receives in `params` are listed below.
 
-```yaml
-data:
-  list:
-    album: |
-      // JavaScript code
-    playlist: |
-      // JavaScript code
-    artistSongs: |
-      // JavaScript code
-    artistVideos: |
-      // JavaScript code
-    artistAlbums: |
-      // JavaScript code
-    artistPlaylists: |
-      // JavaScript code
-    trackRadio: |
-      // JavaScript code
-```
+## `list` handlers
 
-Each script is called with `params.id` set to the relevant media id (an album, playlist, or artist id, previously returned as `id` from a search or another list/get script), plus `params.cookies` and, if applicable, `params.context`, exactly as in [Search Scripts](/docs/media-sources/search). `list.trackRadio` additionally receives `params.type`, see below.
+### `list/tracklist/<tracklistType>`
 
-### `list.album`, `list.playlist`
+Called when a tracklist's page is opened, with:
 
-These return a page of tracks and must call `postResult` with the same shape used by `search.songs`:
+| Property | Description |
+| --- | --- |
+| `params.id` | The tracklist's id, previously returned as `id` from another handler. |
+
+Returns a page of tracks, using the [track shape](/docs/media-sources/search#tracks). A track without a `type` takes the first declared track type.
 
 ```js
-postResult({
-  items: [
-    {
-      id: "unique-id", // required
-      title: "Track Title", // required
-      subtitle: "Artist Name", // optional
-      duration: 213000, // optional, milliseconds
-      lowResArtworkUrl: "https://...", // optional
-      highResArtworkUrl: "https://...", // optional
-      url: "https://...", // optional
-      metadata: { any: "JSON object" }, // optional
-      artists: [ { id, name, lowResArtworkUrl, highResArtworkUrl } ], // optional
-      albums:  [ { id, title, subtitle, lowResArtworkUrl, highResArtworkUrl } ] // optional
-    }
-  ]
-  // any additional fields become params.previousResult on the next page
-});
+boppa.data.register({
+  "list/tracklist/album": async function (params, { signal }) {
+    const album = await fetchAlbum(params.id, signal)
+    return { items: album.tracks.map(toTrack) }
+  },
+})
 ```
 
-Leave out any field the page doesn't show, including `artists` and `albums`, rather than returning a placeholder. Return `[]` for `artists` or `albums` only when the track has none. See [Result shape](/docs/media-sources/search#result-shape) for how Boppa treats each case.
+### `list/profileTracks/<trackType>`
 
-### `list.artistSongs`, `list.artistVideos`
+Called when a profile's track section is opened to see all of it, for example every song by an artist. Receives:
 
-These return a page of tracks, using the same item shape as `list.album` and `list.playlist` above. They're called when the corresponding section of an artist's page is opened.
+| Property | Description |
+| --- | --- |
+| `params.id` | The profile's id. |
+| `params.profile` | `{ id, type }` of the profile, so one handler can serve several profile types. |
 
-### `list.artistAlbums`, `list.artistPlaylists`
+Returns a page of tracks. A track without a `type` takes `<trackType>`. Without this handler, the section still shows on the profile's page, but can't be opened.
 
-These return a page of albums or playlists. They're called when the corresponding section of an artist's page is opened. They use the same item shape as `search.albums` and `search.playlists`.
+### `list/profileTracklists/<tracklistType>`
 
-```js
-postResult({
-  items: [
-    {
-      id: "unique-id", // required
-      title: "Album Title", // required
-      subtitle: "Artist Name", // optional
-      year: 1975, // optional
-      lowResArtworkUrl: "https://...", // optional
-      highResArtworkUrl: "https://..." // optional
-    }
-  ]
-  // any additional fields become params.previousResult on the next page
-});
-```
+Called when a profile's tracklist section is opened to see all of it, for example every album by an artist. Receives the same `params.id` and `params.profile` as `list/profileTracks`.
 
-### `list.trackRadio`
+Returns a page of tracklists, using the [tracklist shape](/docs/media-sources/search#tracklists). Every tracklist takes `<tracklistType>`.
 
-Optional. When present, songs and videos from this source get a "Start Radio" action that plays an endless queue of tracks related to a seed track. Called with `params.id` set to the seed track's media id and `params.type` set to `"song"` or `"video"`, first when radio is started and again automatically as the listener plays through the queue, to keep it topped up.
+### `list/trackRadio`
 
-Returns a page of tracks, using the same item shape as `list.album` and `list.playlist` above. The seed track itself should not be included, only related tracks. Radio stops automatically once a call returns no continuation fields, or if the listener turns radio off.
+Optional. When present, tracks from this source get a *"Start Radio"* action and the queue offers a radio mode, which plays an endless queue of tracks related to a seed track. Called first when radio starts and again automatically as the listener plays through the queue, to keep it topped up. Receives:
+
+| Property | Description |
+| --- | --- |
+| `params.id` | The seed track's id. |
+| `params.type` | The seed track's type, for example `"song"`. |
+
+Returns a page of tracks. A track without a `type` takes the first declared track type. The seed track itself should not be included, only related tracks. Radio stops automatically once a call returns no continuation fields, or if the listener turns radio off.
 
 ### Pagination
 
-All seven of these scripts support the same pagination contract described in [Search Scripts: Pagination](/docs/media-sources/search#pagination). When the user scrolls to the bottom of the current list (or, for `list.trackRadio`, when the radio queue needs topping up), the script is called again with `params.previousResult` set to whatever non-`items` fields the previous call returned. When Boppa needs a complete track list at once, for example when saving an album to the library, it calls `list.album`, `list.playlist`, `list.artistSongs`, or `list.artistVideos` repeatedly until no continuation is returned and combines every page.
+Every `list` handler supports the same pagination contract described in [Search: Pagination](/docs/media-sources/search#pagination). When the user scrolls to the bottom of the current list (or, for `list/trackRadio`, when the radio queue needs topping up), the handler is called again with `params.previousResult` set to whatever non-`items` fields the previous call returned.
 
-## `data.get`
+When Boppa needs a complete track list at once, for example when saving a tracklist to the library, it calls `list/tracklist/<tracklistType>` or `list/profileTracks/<trackType>` repeatedly until no continuation is returned and combines every page.
 
-```yaml
-data:
-  get:
-    artist: |
-      // JavaScript code
-    song: |
-      // JavaScript code
-    video: |
-      // JavaScript code
-    album: |
-      // JavaScript code
-    playlist: |
-      // JavaScript code
-```
+## `get` handlers
 
-### `get.artist`
+### `get/profile/<profileType>`
 
-Called with `params.id` set to the artist's media id whenever the user opens an artist page. This is the primary source of an artist's detail page content, the search result that led to the page generally carries only an id, a name, and artwork.
+Called whenever the user opens a profile's page. This is the primary source of a profile page's content, the search result that led to the page generally carries only an id, a name, and artwork. Receives the same `params.id` and `params.profile` as `list/profileTracks`.
 
 ```js
-postResult({
+return {
   lowResArtworkUrl: "https://...", // optional
   highResArtworkUrl: "https://...", // optional
-  songs: [ /* track objects */ ], // optional
-  albums: [ /* tracklist objects */ ], // optional
-  videos: [ /* track objects */ ], // optional
-  playlists: [ /* tracklist objects */ ] // optional
-});
+  tracks: {
+    song: [/* track objects */],
+    video: [/* track objects */],
+  },
+  tracklists: {
+    album: [/* tracklist objects */],
+    playlist: [/* tracklist objects */],
+  },
+  sectionOrder: ["tracklists.album", "tracks.song", "tracks.video", "tracklists.playlist"], // optional
+}
 ```
 
-Each of `songs`, `albums`, `videos`, and `playlists` uses the same item shape as the corresponding search category. Any of the four may be omitted, the artist page only shows sections for which data was returned.
+`tracks` and `tracklists` are keyed by type id. Each key becomes a section on the profile's page, using the type's name and icon. A track in `tracks.song` without its own `type` takes `song`. Any key may be omitted, the page only shows sections for which data was returned.
 
-The order in which these four keys appear in the object passed to `postResult` determines the order the corresponding sections are displayed on the artist page. For example, returning `{ albums: [...], songs: [...] }` displays the Albums section before the Songs section.
+`sectionOrder` sets the order of the sections, as `"tracks.<trackType>"` and `"tracklists.<tracklistType>"` entries. A section that isn't listed is not shown. When `sectionOrder` is omitted, track sections come first, then tracklist sections, each in the order the types are declared in `manifest.json`.
 
-### `get.song`, `get.video`
+A track's actions only link to one of its profiles when the source registers `get/profile/<profileType>` for that profile's type.
 
-Called with `params.id` set to a track's media id. Returns a single track object, using the same shape as an item from `search.songs` (`id` and `title` are required, all other fields are optional). Boppa calls this to resolve a track's full details.
+### `get/tracklist/<tracklistType>`
 
-```js
-postResult({
-  id: "unique-id", // required
-  title: "Track Title", // required
-  subtitle: "Artist Name", // optional
-  duration: 213000, // optional, milliseconds
-  lowResArtworkUrl: "https://...", // optional
-  highResArtworkUrl: "https://...", // optional
-  url: "https://...", // optional
-  metadata: { any: "JSON object" }, // optional
-  artists: [ { id, name, lowResArtworkUrl, highResArtworkUrl } ], // optional
-  albums:  [ { id, title, subtitle, lowResArtworkUrl, highResArtworkUrl } ] // optional
-});
-```
-
-Leave out any field the page doesn't show, including `artists` and `albums`, rather than returning a placeholder. Return `[]` for `artists` or `albums` only when the track has none. See [Result shape](/docs/media-sources/search#result-shape) for how Boppa treats each case.
-
-### `get.album`, `get.playlist`
-
-Called with `params.id` set to the album or playlist's media id whenever its page is opened. Returns a single tracklist object, using the same shape as an item from `search.albums` or `search.playlists`. Boppa merges the returned fields into whatever metadata is already known about the tracklist (for example, from the search result or list item that led to this page), filling in anything the earlier metadata was missing, such as artwork.
+Called with `params.id` set to the tracklist's id whenever its page is opened. Returns a single tracklist object, using the [tracklist shape](/docs/media-sources/search#tracklists). Boppa merges the returned fields into whatever is already known about the tracklist (for example, from the search result or list item that led to this page), filling in anything the earlier data was missing, such as artwork.
 
 ```js
-postResult({
+return {
   id: "unique-id",
   title: "Album Title",
   subtitle: "Artist Name", // optional
-  year: 1975, // optional, get.album only
+  year: 1975, // optional
   lowResArtworkUrl: "https://...", // optional
-  highResArtworkUrl: "https://..." // optional
-});
+  highResArtworkUrl: "https://...", // optional
+  url: "https://...", // optional
+  owner: { id, name, type }, // optional
+}
 ```
+
+### `get/track/<trackType>`
+
+Returns a single track object, using the [track shape](/docs/media-sources/search#tracks), for `params.id`. Reserved for resolving one track's full details. Boppa does not call it yet.
 
 ## Errors
 
-As with search scripts, a thrown error, a rejected promise, or a call to `postError(message)` surfaces as an error message in the relevant view. A `list` or `get` script that never calls `postResult` or `postError` times out after 30 seconds, see [Script Environment](/docs/media-sources/script-environment).
+As with search handlers, a thrown error or a rejected promise surfaces as an error message in the relevant view. A handler that doesn't settle within 30 seconds times out, see [Container](/docs/media-sources/container#calling-convention).
