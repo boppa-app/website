@@ -1,129 +1,180 @@
 ---
 title: Playback
-description: The player page and the JavaScript bridge that connects it to Boppa's controls.
+description: How a media source hands Boppa a stream to play, from a plain URL to bytes it serves itself.
 nav: Playback
-order: 14
+order: 16
 category: Media Sources
 ---
 
 # Playback
 
-Boppa does not decode audio itself. Each media source describes a playback configuration which details a webpage, loaded in a hidden WebView, that is responsible for actually playing a track. Boppa drives this page through a small JavaScript bridge and listens for events it reports back. This page documents that contract in full.
+A media source plays media in one of two ways:
 
-## Configuring the player page
+- **From the container.** The container registers a `resolve` handler that turns a track into a stream, and Boppa plays it natively. This is the default, and it gets lock screen controls and Now Playing info without any extra work.
+- **From a [player page](/docs/media-sources/playback/player-page).** A web page, loaded in a hidden WebView, plays the media itself and Boppa drives it through a JavaScript bridge. Use this only when the site's media can't be reached any other way.
 
-```yaml
-playback:
-  url: "https://example.com/embed-player"
-  # or, instead of url:
-  # html: |-
-  #   <!doctype html>
-  #   <html>...</html>
-  userScripts:
-    - title: Boppa Bridge
-      content: |
-        (function() { /* ... */ })();
-      injectionTime: atDocumentStart
-  customUserAgent: null # optional
-```
+A package uses a player page when it includes `playback/index.html` or sets `url` in `playback/config.json`. Otherwise it plays from the container.
 
-Exactly one of `url` or `html` must be present.
-
-- **`url`** loads an existing page, typically one already hosted by the source. This is appropriate when a page on the site already contains a working `<audio>` or `<video>` element and enough of its own JavaScript to load and play a given track.
-- **`html`** supplies a small, self-contained document instead. This is appropriate when full control over the top-level document is required, or when the real player needs to be embedded in an `<iframe>`.
-
-`userScripts` are injected into the page as described in [Config Reference: Script objects](/docs/media-sources/config-reference#script-objects). Scripts are injected into every frame of the document, including any `<iframe>` elements, not only the top-level frame. A script intended to run only inside an iframe should check `if (window === window.top) return;` at its start, and vice versa.
-
-## Boppa ↔ WebView communication
-
-### Functions Boppa calls
-
-The player page (or its scripts) must define the following functions on `window`. Boppa calls these directly via JavaScript evaluation, a function that is missing is simply skipped, with no error surfaced.
-
-| Function | Called when | Argument |
-| --- | --- | --- |
-| `window.boppaLoad(trackData)` | A new track is selected for playback. | An object describing the track, see [Track data](#track-data) below. |
-| `window.boppaPlay()` | Playback should start or resume. | None. |
-| `window.boppaPause()` | Playback should pause. | None. |
-| `window.boppaSeek(ms)` | The playhead should move to a specific position. | Position in milliseconds. |
-| `window.boppaStop()` | Playback has ended entirely (switching to different media source). | None. |
-
-The object passed to `boppaLoad` has the following shape:
+## `resolve`
 
 ```js
-{
-  id: "00000000-0000-0000-0000-000000000000", // id of the song/video from search/get/list response
-  title: "Track Title",
-  subtitle: "Artist Name",
-  duration: 213000, // milliseconds; 0 if unknown
-  lowResArtworkUrl: "boppa-artwork://cache?url=...",
-  highResArtworkUrl: "boppa-artwork://cache?url=...",
-  url: "https://...",
-  metadata: { any: "JSON object" },
-  context: { key: "value" }, // this source's gathered context values, {} if none
-  loadToken: "00000000-0000-0000-0000-000000000000" // unique per boppaLoad call, see below
+boppa.playback.register({
+  resolve: async function (track, { signal }) {
+    const info = await fetchStreamInfo(track.id, signal)
+    return { kind: "direct", url: info.url }
+  },
+})
+```
+
+Boppa calls `resolve` once each time a track starts. It receives:
+
+- **`track`**: the track being played.
+
+  ```js
+  {
+    id: "unique-id", // the track's id from a search, list, or get handler
+    title: "Track Title",
+    subtitle: "Artist Name", // "" if unknown
+    duration: 213000, // milliseconds, 0 if unknown
+    lowResArtworkUrl: "https://...", // "" if unknown
+    highResArtworkUrl: "https://...", // "" if unknown
+    url: "https://...", // "" if unknown
+    metadata: { any: "JSON object" }, // {} if none
+  }
+  ```
+
+  `metadata` is carried through unchanged from whichever handler produced the track, see [Result shape](/docs/media-sources/search#result-shape).
+
+- **`{ signal }`**: an `AbortSignal` that fires when the stream is released, for example because the user skipped to another track before `resolve` finished.
+
+`resolve` returns a **stream descriptor**, an object describing how Boppa should get the media. Its `kind` picks one of three shapes, from least to most control:
+
+| `kind` | Who fetches the bytes | Use it when |
+| --- | --- | --- |
+| `direct` | Boppa, from a URL. | The media is at a URL anyone can request. |
+| `progressive` | The container, one byte range at a time. | The bytes need custom requests, headers, or decoding. |
+| `fragmented` | The container, one fragment at a time. | The media is fragmented MP4 or packed audio, and seeking and duration must be exact. |
+
+`resolve` has up to 10 minutes to settle. A thrown error stops the track and shows the error's message.
+
+## Stream descriptors
+
+### `direct`
+
+```js
+return {
+  kind: "direct",
+  url: "https://cdn.example.com/track.mp3", // required
+  duration: 213.4, // optional, seconds
+  bufferAheadSeconds: 30, // optional
 }
 ```
 
-`metadata` is carried through unchanged from whichever search, list, or get script produced the track, see [Result shape](/docs/media-sources/search#result-shape). It defaults to `{}` if the script didn't set it.
+Boppa plays `url` itself. No cookies or custom headers are sent, so the URL must work on its own. If the stream fails mid-track, Boppa calls `resolve` once more and resumes from the same position.
 
-`loadToken` identifies this specific `boppaLoad` call. If the page's playback events (below) echo it back, Boppa uses it to ignore events left over from a track it has since moved away from. This matters if the page reuses one `<audio>`/`<video>` element across tracks: tapping a second track before the first one's events (e.g. `"play"`) have fired doesn't guarantee those in-flight events are discarded, since `boppaLoad` itself doesn't cancel anything already in motion. Without the token, such a stale event could be misread as a state change for the newly selected track. For example, a `"play"` event meant for the abandoned track arriving after the new one is already the current selection would make Boppa think the new track started playing before it actually did. Echoing the token is optional, a page that doesn't include it in its events simply doesn't get this protection.
-
-`context` is this media source's stored context values, the same plain object of string key/value pairs passed to search, list, and get scripts as `params.context`, see [Using context values](/docs/media-sources/context-popups#using-context-values). It's included here so a player page can use them directly, for example to attach an auth header or cookie a script gathered, without Boppa needing a separate bridge for it. It's `{}` if the source declares no `context` or none has been gathered yet.
-
-`lowResArtworkUrl` and `highResArtworkUrl` are rewritten by Boppa to a local `boppa-artwork://` URL that is served from Boppa's on-device image cache rather than fetched directly from the original source. Player pages should treat these as ordinary image URLs, for example including it in a [`MediaMetadata`](https://developer.mozilla.org/en-US/docs/Web/API/MediaMetadata) artwork entry. Boppa also proactively preloads artwork for nearby tracks in the queue by inserting hidden `<img>` elements into the player page in advance.
-
-### Events the page reports
-
-The page reports playback state back to Boppa by calling `window.postEvent(eventObj)`, a function Boppa injects automatically; it does not need to be defined by the configuration.
-
-| `eventObj.type` | Meaning | Additional fields |
-| --- | --- | --- |
-| `"play"` | Playback has started or resumed. | None. |
-| `"pause"` | Playback has paused. | None. |
-| `"progress"` | The current playback position has changed. | `currentTime`, `duration` (seconds). |
-| `"duration"` | The track's duration has been resolved. | `value` (seconds). |
-| `"finish"` | The track has finished playing. Boppa advances to the next track in the queue. | None. |
-| `"error"` | Playback has failed. | `message` (string, shown in logs). |
-
-Every one of these can also carry `loadToken`, echoing the value from the `trackData` the event pertains to (see [Track data](#track-data) above):
+### `progressive`
 
 ```js
-window.postEvent({ type: "play", loadToken: currentLoadToken });
-```
-
-The player page should track `currentLoadToken` in a variable, update it at the top of its `boppaLoad` handler, and read it back whenever it reports one of these events.
-
-Be careful with anything reported from inside an async callback started by that `boppaLoad` handler, for example a `.catch()` on the element's `play()` promise, or a `.then()` following a `fetch()` used to resolve the actual stream URL. By the time that callback runs, a newer `boppaLoad` call may already have overwritten the shared `currentLoadToken` variable, so reading it there tags the event with the wrong (newer) token, which then passes Boppa's staleness check instead of being dropped by it. Capture the token in a local variable at the top of the handler instead, and pass that captured value explicitly wherever an event is reported from one of these callbacks:
-
-```js
-function loadTrack(trackData) {
-  var thisLoadToken = trackData.loadToken;
-  currentLoadToken = thisLoadToken;
-  fetchStreamUrl(trackData.url).then(function(url) {
-    audio.src = url;
-    audio.play().catch(function(e) {
-      // Use thisLoadToken here, not currentLoadToken, a later boppaLoad call
-      // may have already changed it by the time this rejection fires.
-      window.postEvent({ type: "error", message: e.message, loadToken: thisLoadToken });
-    });
-  });
+return {
+  kind: "progressive",
+  mimeType: "audio/mp4", // required
+  contentLength: 4821733, // required, total bytes
+  duration: 213.4, // optional, seconds
+  bufferAheadSeconds: 30, // optional
+  chunkBytes: 65536, // optional
+  handle: { url: info.url, key: info.key }, // optional
 }
 ```
 
-Listeners attached directly to the media element (`playing`, `pause`, `timeupdate`, and so on) don't need this, they only fire for whatever is actually loaded on the element right now, which is exactly what the shared `currentLoadToken` variable tracks by that point.
+Boppa treats the media as one file of `contentLength` bytes and asks the container for whatever byte ranges the player needs, through the [stream handlers](#stream-handlers).
 
-### Commands the page can request
+### `fragmented`
 
-If you wish to implement track navigation within the playback window, you can forward those requests back to Boppa by calling `window.postEvent` with one of the following types:
+```js
+return {
+  kind: "fragmented",
+  mimeType: "audio/mp4", // required
+  fragments: [ // required, non-empty
+    { offset: 1024, length: 98304, duration: 2.0 },
+    { offset: 99328, length: 97280, duration: 2.0 },
+  ],
+  initSegment: { offset: 0, length: 1024 }, // fragmented MP4 only
+  duration: 213.4, // optional, seconds
+  bufferAheadSeconds: 30, // optional
+  chunkBytes: 65536, // optional
+  handle: { /* ... */ }, // optional
+}
+```
 
-| `eventObj.type` | Effect | Additional fields |
+`fragments` maps the media's timeline. Each fragment is a byte range (`offset` and `length`) and how long it plays (`duration`, in seconds). Boppa uses the map to seek straight to the fragment it needs and to show an exact duration, then asks the container for each fragment's bytes through the [stream handlers](#stream-handlers).
+
+`initSegment` is the byte range of a fragmented MP4's initialization segment (its `ftyp` and `moov` boxes). Leave it out for packed audio such as MP3 or ADTS AAC, where every fragment carries its own headers.
+
+### Common fields
+
+| Field | Description |
+| --- | --- |
+| `duration` | The track's length in seconds. When set, Boppa trusts it over what it reads from the media. |
+| `bufferAheadSeconds` | How many seconds Boppa should buffer ahead of the playhead. When omitted, the system decides, which can mean downloading a whole small file. |
+| `chunkBytes` | The most bytes Boppa asks for in a single `pull`. Defaults to `65536`. |
+| `handle` | Any value. Boppa keeps it and passes it back to every stream handler for this stream. Use it to carry whatever the stream handlers need, such as a signed URL or a decryption key. |
+
+An invalid descriptor, for example a `progressive` stream without `contentLength`, stops the track with a message naming the missing field.
+
+## Stream handlers
+
+`progressive` and `fragmented` streams are served by the container. Boppa reads them through four more playback handlers:
+
+```js
+boppa.playback.register({
+  openStream: async function (handle, { offset }) {
+    // start reading at byte offset
+    return { streamId: "s1" }
+  },
+  pull: async function (handle, { streamId, maxBytes }) {
+    // hand over up to maxBytes bytes
+    return { bytes: chunk, eof: false }
+  },
+  closeStream: async function (handle, { streamId }) {
+    // stop reading and free what this read held
+  },
+  release: async function (handle) {
+    // the track is done, free everything for this stream
+  },
+})
+```
+
+| Handler | Called when | Returns |
 | --- | --- | --- |
-| `"previoustrackCommand"` | Requests that Boppa skip to the previous track. | None. |
-| `"nexttrackCommand"` | Requests that Boppa skip to the next track. | None. |
+| `openStream(handle, { offset })` | Boppa needs bytes starting at `offset`, for a byte range or a fragment. | `{ streamId }`, a string naming this read. |
+| `pull(handle, { streamId, maxBytes })` | Boppa wants the next bytes of a read. Called repeatedly until the range is filled. | `{ bytes, eof, waiting }` |
+| `closeStream(handle, { streamId })` | A read is finished or abandoned. | Nothing. |
+| `release(handle)` | The track stopped, ended, or was replaced. | Nothing. |
 
-Play, pause, and seek are different: since the page already owns `window.boppaPlay`/`window.boppaPause`/`window.boppaSeek`, an intercepted play/pause/seek request should just call them directly rather than going through Boppa.
+Several reads of the same stream can be open at once, for example when the user seeks. `streamId` tells them apart.
 
-## Triggering a popup from playback
+`pull` returns:
 
-If the player page needs to present an interactive flow mid-playback, for example to refresh an expired session, call `window.boppaPopup('<id>')`, where `<id>` matches a key in the configuration's top-level `popup` map. Boppa stops playback, presents the popup, and reloads the player page once the popup is dismissed. See [Context & Popups](/docs/media-sources/context-popups) for popup details.
+| Field | Description |
+| --- | --- |
+| `bytes` | The next bytes, in order, as an array of byte values or a typed array such as `Uint8Array`. Return at most `maxBytes`. May be empty. |
+| `eof` | `true` once the media has no more bytes. |
+| `waiting` | `true` when `bytes` is empty because the container is deliberately waiting, for example riding out a network outage. |
+
+An empty `pull` with `waiting: true` tells Boppa to keep asking. It gives up only after 10 minutes without bytes. An empty `pull` without `waiting` is treated as stuck, and after about 2 seconds of them Boppa fails that read and retries it. A thrown error fails the read the same way.
+
+### Giving up on a track
+
+Boppa retries failed reads on its own, so an error from `openStream` or `pull` is normally treated as temporary. When the container knows retrying won't help, for example because the track was taken down, it can mark the error as fatal:
+
+```js
+const error = new Error("This track is no longer available")
+error.fatal = true
+throw error
+```
+
+Prefixing the message with `non-retryable:` works the same way. Boppa then stops the track and shows the message, without the prefix.
+
+## Now Playing
+
+Boppa fills the lock screen and Control Center from the track's title, subtitle, and artwork, and handles play, pause, seek, and skip itself. A container-played source needs nothing more. Player pages work differently, see [iOS](/docs/media-sources/playback/ios).
