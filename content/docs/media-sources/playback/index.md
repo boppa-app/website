@@ -177,4 +177,4 @@ Prefixing the message with `non-retryable:` works the same way. Boppa then stops
 
 ## Now Playing
 
-Boppa fills the lock screen and Control Center from the track's title, subtitle, and artwork, and handles play, pause, seek, and skip itself. A container-played source needs nothing more. Player pages work differently, see [iOS](/docs/media-sources/playback/ios).
+Boppa fills the lock screen and Control Center from the track's title, subtitle, and artwork, and handles play, pause, seek, and skip itself. A container-played source needs nothing more. Player pages work differently, see [iOS](/docs/media-sources/playback/ios-now-playing-info).
