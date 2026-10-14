@@ -77,7 +77,7 @@ function withScheme(value: string): string {
   return /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(value) ? value : `https://${value}`;
 }
 
-async function validateConfigUrl(
+async function validatePackageUrl(
   rawUrl: string,
 ): Promise<{ ok: true; url: string; name?: string } | { ok: false; message: string }> {
   const withUrlScheme = withScheme(rawUrl);
@@ -115,7 +115,7 @@ async function validateConfigUrl(
 
 function GenerateLinkForm() {
   const navigate = useNavigate({ from: Route.fullPath });
-  const [configUrl, setConfigUrl] = useState("");
+  const [packageUrl, setPackageUrl] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "invalid">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
@@ -130,10 +130,10 @@ function GenerateLinkForm() {
       noValidate
       onSubmit={async (event) => {
         event.preventDefault();
-        const trimmed = configUrl.trim();
+        const trimmed = packageUrl.trim();
         if (!trimmed) return;
         setStatus("loading");
-        const result = await validateConfigUrl(trimmed);
+        const result = await validatePackageUrl(trimmed);
         if (!result.ok) {
           setErrorMessage(result.message);
           setStatus("invalid");
@@ -143,7 +143,7 @@ function GenerateLinkForm() {
       }}
     >
       <label
-        htmlFor="config-url"
+        htmlFor="package-url"
         className="block text-sm text-muted-foreground"
         onMouseDown={(event) => {
           event.preventDefault();
@@ -153,21 +153,21 @@ function GenerateLinkForm() {
         }}
         onClick={(event) => event.preventDefault()}
       >
-        Paste a media source config URL to generate a link that adds it to
+        Paste a media source package URL to generate a link that adds it to
         Boppa.
       </label>
       <div className="relative flex items-center">
         <input
           ref={inputRef}
-          id="config-url"
+          id="package-url"
           type="text"
           inputMode="url"
           autoCapitalize="none"
           autoCorrect="off"
           placeholder="https://data.boppa.app/iOS/internet-archive.yaml"
-          value={configUrl}
+          value={packageUrl}
           onChange={(event) => {
-            setConfigUrl(event.target.value);
+            setPackageUrl(event.target.value);
             if (isInvalid) setStatus("idle");
           }}
           aria-invalid={isInvalid}
@@ -184,7 +184,7 @@ function GenerateLinkForm() {
           <button
             type="submit"
             aria-label="Generate link"
-            disabled={!configUrl.trim() || status === "loading"}
+            disabled={!packageUrl.trim() || status === "loading"}
             className="absolute right-3 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:pointer-events-none"
           >
             {status === "loading" ? (
