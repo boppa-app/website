@@ -41,6 +41,7 @@ Every file Boppa reads must be UTF-8.
   "version": "1.0.0",
   "name": "Example",
   "author": "you",
+  "gitUrl": "https://github.com/you/example-source",
   "highlightColor": "#FF5500",
   "allowedUrls": ["example.com", "*.examplecdn.com"],
   "trackTypes": [{ "id": "song", "belongsTo": ["album"] }],
@@ -56,6 +57,7 @@ Every file Boppa reads must be UTF-8.
 | `version` | string | Yes | Free-form version string. Compared on update checks, see [Publishing & Sharing](/docs/media-sources/publishing). |
 | `name` | string | Yes | Display name shown throughout the app. |
 | `author` | string | No | Name or handle of the package's author, shown in the source's details. |
+| `gitUrl` | string | No | URL of the git repository the package is developed in. Shown in the source's details, labelled GitHub URL for github.com links, and opens in the browser when tapped. |
 | `highlightColor` | string | No | Hex color, for example `"#FF5500"`, used for accents associated with the source. |
 | `allowedUrls` | list of strings | No | Hosts the container is allowed to `fetch()`. Defaults to `[fqdn]`. See [`allowedUrls`](#allowedurls). |
 | `trackTypes` | list | Yes | The kinds of tracks the source has. See [Media Types](/docs/media-sources/media-types). |
