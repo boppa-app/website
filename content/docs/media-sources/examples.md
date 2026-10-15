@@ -26,6 +26,7 @@ example/
 ```json
 {
   "id": "example.com",
+  "fqdn": "example.com",
   "version": "1.0.0",
   "name": "Example",
   "allowedUrls": ["api.example.com"],
