@@ -53,7 +53,7 @@ Every file Boppa reads must be UTF-8.
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
 | `id` | string | Yes | Unique identifier for this package. See [`id`](#id). |
-| `fqdn` | string | No | The site the source serves. Defaults to `id`. See [`fqdn`](#fqdn). |
+| `fqdn` | string | Yes | The site the source serves. See [`fqdn`](#fqdn). |
 | `version` | string | Yes | Free-form version string. Compared on update checks, see [Publishing & Sharing](/docs/media-sources/publishing). |
 | `name` | string | Yes | Display name shown throughout the app. |
 | `author` | string | No | Name or handle of the package's author, shown in the source's details. |
@@ -75,8 +75,6 @@ A short, stable string that identifies this package. It may only contain letters
 The site this source serves, for example `archive.org`, using the same characters as `id`. It is also the default for [`allowedUrls`](#allowedurls) and the base URL of a bundled [player page](/docs/media-sources/playback/player-page). Every track, profile, and tracklist Boppa stores is keyed on the source's `fqdn`, not its `id`. Two packages that serve the same site with the same `fqdn` share the same library: saved tracks, playlists, and recently played items work with whichever of them is enabled.
 
 Only one source per `fqdn` can be enabled at a time. Adding or enabling a source disables any other source with the same `fqdn`.
-
-When `fqdn` is omitted, it falls back to `id`, so a single package for a site only needs `id`.
 
 ### `allowedUrls`
 
