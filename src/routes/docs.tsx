@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { Menu, X } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { DocsBreadcrumbs } from "~/components/docs-breadcrumbs";
 import { DocsNav } from "~/components/docs-nav";
 import { DocsOutline } from "~/components/docs-outline";
@@ -20,6 +20,9 @@ function DocsLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const toggleMobileNav = useCallback(() => setMobileNavOpen((v) => !v), []);
   const closeMobileNav = useCallback(() => setMobileNavOpen(false), []);
+
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  useCenterScrollbarOnEdge(sidebarRef);
 
   return (
     <div className="min-h-screen bg-background">
@@ -49,12 +52,19 @@ function DocsLayout() {
 
       <div className="max-w-[90rem] mx-auto flex items-start">
         {/* Desktop sidebar */}
-        <aside className="hidden lg:block sticky top-0 h-screen w-60 shrink-0 border-r border-border p-6 overflow-y-auto">
-          <Link to="/" className="flex items-center gap-3 mb-8">
-            <img src="/logo.webp" alt="Boppa" width={32} height={32} className="w-8 h-8" />
-            <span className="text-lg font-medium">Boppa</span>
-          </Link>
-          <DocsNav nodes={tree} />
+        <aside className="hidden lg:block sticky top-0 h-screen w-60 shrink-0 border-r border-border">
+          <div
+            ref={sidebarRef}
+            className="absolute inset-y-0 left-0 w-[calc(15rem+3.5px)] overflow-y-auto overflow-x-hidden"
+          >
+            <div className="min-h-full w-60 p-6 pr-8">
+              <Link to="/" className="flex items-center gap-3 mb-8">
+                <img src="/logo.webp" alt="Boppa" width={32} height={32} className="w-8 h-8" />
+                <span className="text-lg font-medium">Boppa</span>
+              </Link>
+              <DocsNav nodes={tree} />
+            </div>
+          </div>
         </aside>
 
         {/* Main content */}
@@ -72,4 +82,25 @@ function DocsLayout() {
       </div>
     </div>
   );
+}
+
+// Widens the element past its 15rem column so its scrollbar is centered on the
+// column's 1px right border. The class default assumes the 8px scrollbar from
+// styles.css; this corrects it before paint for any other width.
+function useCenterScrollbarOnEdge(ref: React.RefObject<HTMLElement | null>) {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const update = () => {
+      const scrollbarWidth = el.offsetWidth - el.clientWidth;
+      const overhang = scrollbarWidth > 0 ? (scrollbarWidth - 1) / 2 : 3.5;
+      el.style.width = `calc(15rem + ${overhang}px)`;
+    };
+
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    if (el.firstElementChild) observer.observe(el.firstElementChild);
+    return () => observer.disconnect();
+  }, [ref]);
 }

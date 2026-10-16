@@ -11,6 +11,37 @@
   --color-primary-foreground: #140a24;
   --color-secondary: #2a1d40;
   --color-secondary-foreground: #f2eefb;
+  --color-scrollbar: #1c1230;
+  --color-scrollbar-hover: #231838;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+/* Browsers that support ::-webkit-scrollbar ignore it once scrollbar-color is set */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-color: var(--color-scrollbar) transparent;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-scrollbar);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-scrollbar-hover);
 }
 
 /* Docs page prose styles */
@@ -193,20 +224,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.875rem;
   color: var(--color-foreground);
-  scrollbar-color: var(--color-border) transparent;
-}
-
-.docs-prose pre::-webkit-scrollbar {
-  height: 8px;
-}
-
-.docs-prose pre::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.docs-prose pre::-webkit-scrollbar-thumb {
-  background-color: var(--color-border);
-  border-radius: 4px;
+  --color-scrollbar: var(--color-border);
 }
 
 .docs-prose pre code {
