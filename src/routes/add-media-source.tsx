@@ -164,7 +164,7 @@ function GenerateLinkForm() {
           inputMode="url"
           autoCapitalize="none"
           autoCorrect="off"
-          placeholder="https://data.boppa.app/iOS/internet-archive.yaml"
+          placeholder="https://static.boppa.app/internet-archive.boppa"
           value={packageUrl}
           onChange={(event) => {
             setPackageUrl(event.target.value);
