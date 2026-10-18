@@ -25,7 +25,7 @@ function DocsLayout() {
   useAutoHideScrollbar(sidebarRef);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="docs-layout min-h-screen bg-background">
       {/* Mobile header */}
       <header className="lg:hidden sticky top-0 z-50 bg-background border-b border-border">
         <div className="flex items-center justify-between p-4">
@@ -55,7 +55,7 @@ function DocsLayout() {
         <aside className="hidden lg:block sticky top-0 h-screen w-60 shrink-0 border-r border-border">
           <div
             ref={sidebarRef}
-            className="docs-sidebar-scroll autohide-scrollbar h-full overflow-y-auto overflow-x-hidden"
+            className="docs-scrollbar autohide-scrollbar h-full overflow-y-auto overflow-x-hidden"
           >
             <div className="p-6">
               <Link to="/" className="flex items-center gap-3 mb-8">

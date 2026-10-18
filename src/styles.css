@@ -69,20 +69,24 @@
   --color-scrollbar-hover: transparent;
 }
 
-/* Docs sidebar scrollbar, inset from the sidebar's right border by a transparent thumb border */
-.docs-sidebar-scroll {
+/* Docs scrollbars (sidebar and page), inset from the sidebar border / viewport edge by a transparent thumb border.
+   Chrome styles the page scrollbar from <body>, so it's matched while the docs layout is mounted. */
+.docs-scrollbar,
+body:has(.docs-layout) {
   --color-scrollbar: #4a3d63;
   --color-scrollbar-hover: #5f5180;
 }
 
-.docs-sidebar-scroll::-webkit-scrollbar {
-  width: 12px;
+.docs-scrollbar::-webkit-scrollbar,
+body:has(.docs-layout)::-webkit-scrollbar {
+  width: 10px;
 }
 
-.docs-sidebar-scroll::-webkit-scrollbar-thumb {
-  border-right: 4px solid transparent;
+.docs-scrollbar::-webkit-scrollbar-thumb,
+body:has(.docs-layout)::-webkit-scrollbar-thumb {
+  border-right: 2px solid transparent;
   background-clip: padding-box;
-  border-radius: 4px 8px 8px 4px / 4px;
+  border-radius: 4px 6px 6px 4px / 4px;
 }
 
 /* Docs page prose styles */
