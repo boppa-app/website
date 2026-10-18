@@ -24,6 +24,12 @@ function DocsLayout() {
   const sidebarRef = useRef<HTMLDivElement>(null);
   useAutoHideScrollbar(sidebarRef);
 
+  const layoutRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  const proseRef = useRef<HTMLDivElement>(null);
+  const outlineRef = useRef<HTMLElement>(null);
+  const outlineFits = useOutlineFits(layoutRef, mainRef, proseRef, outlineRef);
+
   return (
     <div className="docs-layout min-h-screen bg-background">
       {/* Mobile header */}
@@ -50,7 +56,7 @@ function DocsLayout() {
         )}
       </header>
 
-      <div className="max-w-[90rem] mx-auto flex items-start">
+      <div ref={layoutRef} className="relative max-w-[90rem] mx-auto flex items-start">
         {/* Desktop sidebar */}
         <aside className="hidden lg:block sticky top-0 h-screen w-60 shrink-0 border-r border-border">
           <div
@@ -68,20 +74,69 @@ function DocsLayout() {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 min-w-0 px-6 md:px-12 py-8 md:py-12">
-          <div className="max-w-prose mx-auto">
+        <main ref={mainRef} className="flex-1 min-w-0 px-6 md:px-12 py-8 md:py-12">
+          <div ref={proseRef} className="max-w-prose mx-auto">
             {doc && <DocsBreadcrumbs doc={doc} tree={tree} />}
             <Outlet />
           </div>
         </main>
 
-        {/* Right outline */}
-        <aside className="hidden xl:block sticky top-0 h-screen w-60 shrink-0 px-2 overflow-y-auto">
+        {/* Right outline. Grows past w-60 to fit unbreakable headings, taking the space from
+            the gaps around the article; once the article's padding is all that's left it
+            moves out of the flow and hides, still measurable for when it fits again. */}
+        <aside
+          ref={outlineRef}
+          className={
+            "hidden w-min min-w-60 shrink-0 px-2 " +
+            (outlineFits === null
+              ? "xl:block sticky top-0"
+              : outlineFits
+                ? "lg:block sticky top-0"
+                : "lg:block absolute top-0 right-0 invisible")
+          }
+        >
           {doc && <DocsOutline headings={doc.headings} />}
         </aside>
       </div>
     </div>
   );
+}
+
+// Whether the outline fits beside the article at its full width plus the main column's
+// padding. null until measured, so server render falls back to the xl breakpoint.
+function useOutlineFits(
+  layoutRef: React.RefObject<HTMLElement | null>,
+  mainRef: React.RefObject<HTMLElement | null>,
+  proseRef: React.RefObject<HTMLElement | null>,
+  outlineRef: React.RefObject<HTMLElement | null>,
+) {
+  const [fits, setFits] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const layout = layoutRef.current;
+    const main = mainRef.current;
+    const prose = proseRef.current;
+    const outline = outlineRef.current;
+    if (!layout || !main || !prose || !outline) return;
+
+    const update = () => {
+      const mainStyle = getComputedStyle(main);
+      const mainPadding = parseFloat(mainStyle.paddingLeft) + parseFloat(mainStyle.paddingRight);
+      const proseWidth = parseFloat(getComputedStyle(prose).maxWidth);
+      // Width shared by main and the outline; a hidden outline is out of flow and takes none
+      const inFlow = getComputedStyle(outline).position !== "absolute";
+      const shared = main.offsetWidth + (inFlow ? outline.offsetWidth : 0);
+      // offsetWidth is 0 while display: none (below lg, or below xl before the first measure)
+      setFits(outline.offsetWidth > 0 && shared - outline.offsetWidth >= proseWidth + mainPadding);
+    };
+
+    const observer = new ResizeObserver(update);
+    observer.observe(layout);
+    observer.observe(outline);
+    return () => observer.disconnect();
+  }, [layoutRef, mainRef, proseRef, outlineRef]);
+
+  return fits;
 }
 
 // Shows the element's scrollbar while it scrolls or the pointer is over it, and
