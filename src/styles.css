@@ -44,6 +44,47 @@
   background-color: var(--color-scrollbar-hover);
 }
 
+/* Registered as colors so .autohide-scrollbar can transition them */
+@property --color-scrollbar {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --color-scrollbar-hover {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+/* Scrollbar fades out until scrolled or hovered; data-scrollbar-active is toggled by useAutoHideScrollbar */
+.autohide-scrollbar {
+  transition:
+    --color-scrollbar 500ms ease,
+    --color-scrollbar-hover 500ms ease;
+}
+
+.autohide-scrollbar:not([data-scrollbar-active]) {
+  --color-scrollbar: transparent;
+  --color-scrollbar-hover: transparent;
+}
+
+/* Docs sidebar scrollbar, inset from the sidebar's right border by a transparent thumb border */
+.docs-sidebar-scroll {
+  --color-scrollbar: #4a3d63;
+  --color-scrollbar-hover: #5f5180;
+}
+
+.docs-sidebar-scroll::-webkit-scrollbar {
+  width: 12px;
+}
+
+.docs-sidebar-scroll::-webkit-scrollbar-thumb {
+  border-right: 4px solid transparent;
+  background-clip: padding-box;
+  border-radius: 4px 8px 8px 4px / 4px;
+}
+
 /* Docs page prose styles */
 .docs-prose {
   color: rgba(255, 255, 255, 0.6);
