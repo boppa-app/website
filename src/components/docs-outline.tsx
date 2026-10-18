@@ -90,7 +90,7 @@ export function DocsOutline({ headings }: DocsOutlineProps) {
   return (
     <nav
       aria-label="On this page"
-      className="sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto py-8 pr-4"
+      className="py-8 pr-4"
     >
       <div className="text-xs font-medium text-muted-foreground mb-3 px-3">On this page</div>
       <ul className="space-y-1 border-l border-border">
