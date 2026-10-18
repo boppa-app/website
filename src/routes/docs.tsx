@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { Menu, X } from "lucide-react";
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DocsBreadcrumbs } from "~/components/docs-breadcrumbs";
 import { DocsNav } from "~/components/docs-nav";
 import { DocsOutline } from "~/components/docs-outline";
@@ -22,7 +22,7 @@ function DocsLayout() {
   const closeMobileNav = useCallback(() => setMobileNavOpen(false), []);
 
   const sidebarRef = useRef<HTMLDivElement>(null);
-  useCenterScrollbarOnEdge(sidebarRef);
+  useAutoHideScrollbar(sidebarRef);
 
   return (
     <div className="min-h-screen bg-background">
@@ -55,9 +55,9 @@ function DocsLayout() {
         <aside className="hidden lg:block sticky top-0 h-screen w-60 shrink-0 border-r border-border">
           <div
             ref={sidebarRef}
-            className="absolute inset-y-0 left-0 w-[calc(15rem+3.5px)] overflow-y-auto overflow-x-hidden"
+            className="docs-sidebar-scroll autohide-scrollbar h-full overflow-y-auto overflow-x-hidden"
           >
-            <div className="min-h-full w-60 p-6 pr-8">
+            <div className="p-6">
               <Link to="/" className="flex items-center gap-3 mb-8">
                 <img src="/logo.webp" alt="Boppa" width={32} height={32} className="w-8 h-8" />
                 <span className="text-lg font-medium">Boppa</span>
@@ -84,23 +84,49 @@ function DocsLayout() {
   );
 }
 
-// Widens the element past its 15rem column so its scrollbar is centered on the
-// column's 1px right border. The class default assumes the 8px scrollbar from
-// styles.css; this corrects it before paint for any other width.
-function useCenterScrollbarOnEdge(ref: React.RefObject<HTMLElement | null>) {
-  useLayoutEffect(() => {
+// Shows the element's scrollbar while it scrolls or the pointer is over it, and
+// hides it hideDelay ms after both stop. Pairs with .autohide-scrollbar in styles.css.
+function useAutoHideScrollbar(ref: React.RefObject<HTMLElement | null>, hideDelay = 1000) {
+  useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
-    const update = () => {
-      const scrollbarWidth = el.offsetWidth - el.clientWidth;
-      const overhang = scrollbarWidth > 0 ? (scrollbarWidth - 1) / 2 : 3.5;
-      el.style.width = `calc(15rem + ${overhang}px)`;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    let hovering = false;
+
+    const show = () => {
+      clearTimeout(timeout);
+      el.setAttribute("data-scrollbar-active", "");
+    };
+    const scheduleHide = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => el.removeAttribute("data-scrollbar-active"), hideDelay);
+    };
+    const setHovering = (value: boolean) => {
+      if (value === hovering) return;
+      hovering = value;
+      if (hovering) show();
+      else scheduleHide();
     };
 
-    const observer = new ResizeObserver(update);
-    observer.observe(el);
-    if (el.firstElementChild) observer.observe(el.firstElementChild);
-    return () => observer.disconnect();
-  }, [ref]);
+    const onScroll = () => {
+      show();
+      if (!hovering) scheduleHide();
+    };
+    const onPointerMove = (e: PointerEvent) => {
+      const scrollbarWidth = el.offsetWidth - el.clientWidth;
+      setHovering(scrollbarWidth > 0 && e.clientX >= el.getBoundingClientRect().right - scrollbarWidth);
+    };
+    const onPointerLeave = () => setHovering(false);
+
+    el.addEventListener("scroll", onScroll, { passive: true });
+    el.addEventListener("pointermove", onPointerMove);
+    el.addEventListener("pointerleave", onPointerLeave);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      el.removeEventListener("pointermove", onPointerMove);
+      el.removeEventListener("pointerleave", onPointerLeave);
+      clearTimeout(timeout);
+    };
+  }, [ref, hideDelay]);
 }
