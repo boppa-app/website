@@ -40,6 +40,7 @@ Every file Boppa reads must be UTF-8.
   "fqdn": "example.com",
   "version": "1.0.0",
   "name": "Example",
+  "mediaKind": "music",
   "author": "you",
   "gitUrl": "https://github.com/you/example-source",
   "highlightColor": "#FF5500",
@@ -56,6 +57,7 @@ Every file Boppa reads must be UTF-8.
 | `fqdn` | string | Yes | The site the source serves. See [`fqdn`](#fqdn). |
 | `version` | string | Yes | Free-form version string. Compared on update checks, see [Publishing & Sharing](/docs/media-sources/publishing). |
 | `name` | string | Yes | Display name shown throughout the app. |
+| `mediaKind` | string | No | What the source offers, in lowercase, for example `"music"`, `"podcasts"`, or `"videos"`. Shown in the search prompt as Explore music on "Example". Defaults to `"media"`. |
 | `author` | string | No | Name or handle of the package's author, shown in the source's details. |
 | `gitUrl` | string | No | URL of the git repository the package is developed in. Shown in the source's details, labelled GitHub URL for github.com links, and opens in the browser when tapped. |
 | `highlightColor` | string | No | Hex color, for example `"#FF5500"`, used for accents associated with the source. |
