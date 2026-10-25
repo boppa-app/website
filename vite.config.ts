@@ -1,14 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type UserConfig } from "vite";
-import tsConfigPaths from "vite-tsconfig-paths";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 function discoverDocsRoutes(): string[] {
-  const docsDir = path.join(__dirname, "content/docs");
+  const docsDir = path.join(import.meta.dirname, "content/docs");
   if (!fs.existsSync(docsDir)) return ["/docs"];
   const routes = new Set<string>(["/docs"]);
   const walk = (dir: string) => {
@@ -39,6 +38,9 @@ const sitemapPages = ["/", "/download", ...discoverDocsRoutes()].map(
 
 export default defineConfig((): UserConfig => {
   return {
+    resolve: {
+      tsconfigPaths: true,
+    },
     server: {
       host: "0.0.0.0",
       port: 8083,
@@ -49,7 +51,6 @@ export default defineConfig((): UserConfig => {
     },
     plugins: [
       cloudflare({ viteEnvironment: { name: "ssr" } }),
-      tsConfigPaths(),
       tanstackStart({
         router: {
           quoteStyle: "double",
