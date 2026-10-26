@@ -39,7 +39,7 @@ export function SiteFooter() {
               Reddit
             </a>
             <a
-              href="https://discord.gg/shK2P7psK"
+              href="https://discord.gg/cb8SuMnvpW"
               target="_blank"
               rel="noopener noreferrer"
               className="block text-muted-foreground hover:text-foreground transition-colors"

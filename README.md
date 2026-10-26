@@ -14,4 +14,4 @@ iOS only today. [Get it on the App Store.](https://apps.apple.com/app/boppa/id67
 - Docs: [boppa.app/docs](https://boppa.app/docs)
 - Community:
   - [r/BoppaApp](https://reddit.com/r/BoppaApp)
-  - [Discord](https://discord.gg/zk6FhWNnM)
+  - [Discord](https://discord.gg/cb8SuMnvpW)
