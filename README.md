@@ -4,7 +4,7 @@
 
 <h1 align="center">Boppa</h1>
 
-Boppa is a native audio player for anything you already stream. Everything it can search, browse, and play comes from a [**media source**](https://boppa.app/docs/media-sources), a small config you add yourself.
+Boppa is a native audio player for anything you already stream. Everything it can search, browse, and play comes from a [**media source**](https://boppa.app/docs/media-sources), a small package you add yourself.
 
 iOS only today. [Get it on the App Store.](https://apps.apple.com/app/boppa/id6792596501)
 

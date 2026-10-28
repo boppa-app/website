@@ -18,7 +18,7 @@ Adding a media source can fail for a few distinct reasons, each surfaced with a 
 | --- | --- |
 | The entered text could not be parsed as a URL. | "The package URL could not be constructed" |
 | The server returned a non-200 status. | "The server returned an error (HTTP `<code>`)", or a not-found message for a 404. |
-| The file is not a zip archive. | "Malformed config: only .boppa and .zip media source packages are supported" |
+| The file is not a zip archive. | "Malformed media source package: only .boppa and .zip media source packages are supported" |
 | The archive is damaged, encrypted, or uses unsupported compression. | "Malformed media source package: ..." |
 | `manifest.json` is missing. | "Malformed media source package: manifest.json is missing" |
 | `manifest.json` is missing a field, has a field of the wrong type, or declares an invalid type. | "Malformed manifest.json: ..." |
