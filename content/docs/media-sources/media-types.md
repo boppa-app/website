@@ -90,4 +90,6 @@ A track can link to the tracklists it is part of, such as the album a song is on
 - A tracklist reference without a `type` takes the first type in `belongsTo`.
 - A track type with no `belongsTo` keeps no tracklist links at all.
 
+The order of `belongsTo` also decides how tracks are grouped. A track's primary tracklist is its link whose type comes earliest in the list, whatever that type is. In a track carousel, such as recently played or the tracks from a profile in the library, two or more tracks that share a primary tracklist collapse into one card that expands to show them. With `"belongsTo": ["playlist", "album"]`, a song on both a playlist and an album groups with the rest of that playlist.
+
 See [Result shape](/docs/media-sources/search#result-shape) for how tracks carry these references.
