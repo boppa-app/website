@@ -1,5 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { Link, useRouter } from "@tanstack/react-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { type DocHeading } from "~/docs";
+
+const ACTIVE_LINE_TOP = 32;
+const CLICK_SCROLL_SETTLE_MS = 150;
 
 interface DocsOutlineProps {
   headings: DocHeading[];
@@ -7,6 +11,23 @@ interface DocsOutlineProps {
 
 function clsx(...classes: (string | false | null | undefined)[]): string {
   return classes.filter(Boolean).join(" ");
+}
+
+function findActiveHeading(elements: HTMLElement[]): HTMLElement {
+  const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+  const remainingScroll = maxScroll - window.scrollY;
+  const lastTopAtPageEnd = elements[elements.length - 1].getBoundingClientRect().top - remainingScroll;
+  const unreachable = Math.max(0, lastTopAtPageEnd - ACTIVE_LINE_TOP);
+  const range = Math.min(unreachable, maxScroll);
+  const progress = range > 0 ? Math.min(1, Math.max(0, 1 - remainingScroll / range)) : 0;
+  const activeLine = ACTIVE_LINE_TOP + unreachable * progress;
+
+  let active = elements[0];
+  for (const element of elements) {
+    if (element.getBoundingClientRect().top > activeLine) break;
+    active = element;
+  }
+  return active;
 }
 
 function OutlineLink({
@@ -18,22 +39,21 @@ function OutlineLink({
   active: boolean;
   onActivate: (id: string) => void;
 }) {
-  const handleClick = useCallback(
-    (event: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    onActivate(heading.id);
+    if (decodeURIComponent(window.location.hash.slice(1)) === heading.id) {
       event.preventDefault();
-      const element = document.getElementById(heading.id);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth" });
-        window.history.replaceState(null, "", `#${heading.id}`);
-        onActivate(heading.id);
-      }
-    },
-    [heading.id, onActivate],
-  );
+      document.getElementById(heading.id)?.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   return (
-    <a
-      href={`#${heading.id}`}
+    <Link
+      to="."
+      hash={heading.id}
+      replace
+      hashScrollIntoView={{ behavior: "smooth" }}
       onClick={handleClick}
       className={clsx(
         "block py-1 transition-colors border-l-2 -ml-px",
@@ -46,44 +66,69 @@ function OutlineLink({
       )}
     >
       {heading.text}
-    </a>
+    </Link>
   );
 }
 
 export function DocsOutline({ headings }: DocsOutlineProps) {
+  const router = useRouter();
   const [activeId, setActiveId] = useState<string | null>(() =>
     headings.length > 0 ? headings[0].id : null,
   );
+  const clickPin = useRef<{ settled: boolean; timer?: ReturnType<typeof setTimeout> } | null>(null);
+
+  const settlePinLater = useCallback(() => {
+    const pin = clickPin.current;
+    if (!pin) return;
+    clearTimeout(pin.timer);
+    pin.timer = setTimeout(() => {
+      pin.settled = true;
+    }, CLICK_SCROLL_SETTLE_MS);
+  }, []);
+
+  const activateFromClick = useCallback(
+    (id: string) => {
+      clearTimeout(clickPin.current?.timer);
+      clickPin.current = { settled: false };
+      settlePinLater();
+      setActiveId(id);
+    },
+    [settlePinLater],
+  );
 
   useEffect(() => {
-    setActiveId(headings.length > 0 ? headings[0].id : null);
-  }, [headings]);
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      if (clickPin.current) return;
+      const elements = headings.flatMap((heading) => {
+        const element = document.getElementById(heading.id);
+        return element ? [element] : [];
+      });
+      setActiveId(elements.length > 0 ? findActiveHeading(elements).id : (headings[0]?.id ?? null));
+    };
+    const scheduleUpdate = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    const onScroll = () => {
+      if (clickPin.current?.settled) clickPin.current = null;
+      else settlePinLater();
+      scheduleUpdate();
+    };
 
-  useEffect(() => {
-    if (headings.length === 0) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .map((entry) => entry.target.id);
-        if (visible.length > 0) {
-          setActiveId(visible[0]);
-        }
-      },
-      {
-        rootMargin: "-10% 0px -70% 0px",
-        threshold: 0,
-      },
-    );
-
-    for (const heading of headings) {
-      const element = document.getElementById(heading.id);
-      if (element) observer.observe(element);
-    }
-
-    return () => observer.disconnect();
-  }, [headings]);
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", scheduleUpdate);
+    const unsubscribe = router.subscribe("onRendered", scheduleUpdate);
+    return () => {
+      unsubscribe();
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", scheduleUpdate);
+      clearTimeout(clickPin.current?.timer);
+      clickPin.current = null;
+    };
+  }, [headings, router, settlePinLater]);
 
   if (headings.length === 0) return null;
 
@@ -99,7 +144,7 @@ export function DocsOutline({ headings }: DocsOutlineProps) {
             <OutlineLink
               heading={heading}
               active={activeId === heading.id}
-              onActivate={setActiveId}
+              onActivate={activateFromClick}
             />
           </li>
         ))}

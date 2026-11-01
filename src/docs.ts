@@ -69,10 +69,16 @@ function stripInlineMarkdown(text: string): string {
   return text
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/!?\[([^\]]*)\]\[[^\]]*\]/g, "$1")
-    .replace(/`([^`]+)`/g, "$1")
-    .replace(/(\*\*|__)(.*?)\1/g, "$2")
-    .replace(/(\*|_)(.*?)\1/g, "$2")
-    .replace(/<[^>]+>/g, "")
+    .split(/(`[^`]+`)/)
+    .map((part, index) =>
+      index % 2 === 1
+        ? part.slice(1, -1)
+        : part
+            .replace(/(\*\*|__)(.*?)\1/g, "$2")
+            .replace(/(\*|_)(.*?)\1/g, "$2")
+            .replace(/<[^>]+>/g, ""),
+    )
+    .join("")
     .trim();
 }
 
