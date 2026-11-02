@@ -20,7 +20,7 @@ to any Boppa server.
 
 ## Media source packages
 
-Boppa fetches its bundled app configuration from [static.boppa.app/iOS-config.json](https://static.boppa.app/iOS-config.json).
+Boppa fetches its bundled app configuration from [cdn.boppa.app/iOS.json](https://cdn.boppa.app/iOS.json).
 
 ## Third party websites
 
