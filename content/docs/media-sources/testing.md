@@ -45,15 +45,16 @@ See [Container](/docs/media-sources/container) and [Playback](/docs/media-source
 
 ## Reading logs
 
-Boppa writes its logs to files you can open in the **Files** app, under **On My iPhone → Boppa → Logs**, or from a Mac in Finder:
+Boppa writes its logs to files you can open in the **Files** app, under **On My iPhone → Boppa → logs**, or from a Mac in Finder:
 
 | File | Contents |
 | --- | --- |
-| `all.log` | Everything. |
-| `warning.log` | Warnings and errors only. |
-| `error.log` | Errors only. |
+| `application.log` | Everything. |
+| `warning.log` | Each warning, with the lines logged around it. |
+| `error.log` | Each error, with the lines logged around it. |
+| `media-sources/<id>.log` | Everything logged for one media source, named by its `id`. |
 
-The container's `console` output lands in these files, tagged with the source's `id`. So do uncaught exceptions with their file and line, every `fetch` the container makes with its status and timing, every `fetch` blocked by `allowedUrls`, the data handlers each source registered, and every stream descriptor `resolve` returned. During development, the same output appears in your development environment's console.
+The container's `console` output lands in `application.log` and in its source's own file under `media-sources`, tagged with the source's `id`. So do uncaught exceptions with their file and line, every `fetch` the container makes with its status and timing, every `fetch` blocked by `allowedUrls`, the data handlers each source registered, and every stream descriptor `resolve` returned. During development, the same output appears in your development environment's console.
 
 ## Inspecting player pages, workers, and popups
 
