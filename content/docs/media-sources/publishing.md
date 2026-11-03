@@ -49,9 +49,3 @@ A package without an update header still works. Boppa downloads the full package
 If a download is interrupted, Boppa tries again on the next launch, even when auto-update is off.
 
 To publish a new version, replace the file at its existing URL with one whose `version` is incremented. Users who added the source from that URL and have auto-update enabled receive the change the next time they launch Boppa. The auto-update option for an individual source can be turned off from that source's detail screen in **Settings**, which pins it to whatever package is currently installed.
-
-## Requesting a place on the default list
-
-Boppa adds the media sources on its default list automatically. To request that your package be included, [open an issue](https://github.com/boppa-app/media-sources/issues/new) on the [boppa-app/media-sources](https://github.com/boppa-app/media-sources) repository with the package's URL.
-
-The package must be published on [GitHub Pages](https://pages.github.com). The owners review each request and may include the package, but inclusion isn't guaranteed.
