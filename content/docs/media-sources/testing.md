@@ -26,7 +26,7 @@ Adding a media source can fail for a few distinct reasons, each surfaced with a 
 | The package has both `playback/index.html` and a `url` in `playback/config.json`. | "Malformed media source package: use either playback/index.html or url in playback/config.json, not both" |
 | The update header is invalid or doesn't match `manifest.json`. | "Malformed media source package header: ..." |
 | A source with the same `id` is already added. | "A media source with ID "`<id>`" has already been added" |
-| `init` threw or timed out. | "Script error: `<message>`" or "The script timed out" |
+| `init` threw or timed out. | "`<message>`" or "Media Source Not Responding" |
 | The player page failed to load. | "The player page could not be loaded: ..." |
 | The player page's `init` threw. | "The player page failed to start up: ..." |
 
@@ -36,9 +36,9 @@ The malformed-package messages name the exact file and field that failed, for ex
 
 | Cause | Message |
 | --- | --- |
-| The handler threw, or returned a rejected promise. | "Script error: `<message>`" |
-| The handler didn't settle within 30 seconds. | "The script timed out" |
-| The handler returned something other than an object. | "Invalid result: ..." |
+| The handler threw, or returned a rejected promise. | "`<message>`" |
+| The handler didn't settle within 30 seconds. | "Media Source Not Responding" |
+| The handler returned something other than an object. | "Invalid Result From Media Source" |
 | `resolve` returned an invalid stream descriptor. | "Playback script returned an invalid stream: ..." |
 
 See [Container](/docs/media-sources/container) and [Playback](/docs/media-sources/playback) for the contracts these errors correspond to.
