@@ -190,3 +190,30 @@ const stored = await boppa.updateTrackMetadata(track.id, { ...track.metadata, ..
 ```
 
 Replaces the stored [`metadata`](/docs/media-sources/search#result-shape) of one of the source's tracks with `metadata`, which must be a plain object. Use it to cache playback artifacts for the next play of the track. It replaces the whole object, so read the current `metadata`, change it, and pass back everything that should be kept. Resolves to `true` if a stored track was updated, or `false` if Boppa has no stored track with that id.
+
+### `boppa.replaceTrack(trackId, replacement)`
+
+```js
+const result = await boppa.replaceTrack(track.id, {
+  id: "track-456",
+  title: "Song Title",
+  subtitle: "Artist Name",
+  url: "https://example.com/tracks/track-456",
+  tracklists: [{ id: "album-789", title: "Album Title" }],
+})
+// { replaced: true }, or { replaced: false, reason: "old-track-not-stored" }
+```
+
+Tells Boppa that one of the source's tracks now lives under a new id, such as a song from a release the service took down and put out again. `replacement` is a track in the [result shape](/docs/media-sources/search#tracks) of the source's own results, with the same rules for `type`, `profiles`, `tracklists`, and `metadata`. It needs `id` and `title`, and its `id` must differ from `trackId`. When `type` is omitted, the replacement takes the replaced track's type.
+
+Boppa stores the replacement and moves the old track's place onto it:
+
+- It stays in the library, in recently played, and in Likes and the user's playlists, at the old track's position. If the replacement is already stored, the two are merged, so each list holds it once.
+- It takes its profiles, tracklists, and `metadata` from `replacement` only. Nothing is copied from the old track, so a stream cached for the old id doesn't carry over, and a removed album the old track was on isn't linked to the replacement. A saved album stays in the library.
+- The queue and the playing track switch to the replacement in place, so playback carries on.
+
+Then the old track is removed. The whole change is made at once, so if any of it fails, nothing changes and the promise rejects.
+
+Resolves to `{ replaced: true }` once playback has switched. Resolves to `{ replaced: false, reason: "old-track-not-stored" }`, without storing anything, if Boppa has no stored track with that id. That includes calling it again for a track that was already replaced, so it's safe to repeat. Rejects if `replacement` isn't a valid track or has an undeclared `type`.
+
+Only replace a track when the service itself says the two are the same, for example a canonical URL that points from the old id to the new one. A match by title or artist can join different recordings. Call it during [`resolve`](/docs/media-sources/playback#resolve), before resolving the replacement's stream, and the play continues on the replacement. The source can only replace its own tracks, and only with tracks of its own.
