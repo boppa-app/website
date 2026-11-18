@@ -78,6 +78,8 @@ The site this source serves, for example `archive.org`, using the same character
 
 Only one source per `fqdn` can be enabled at a time. Adding or enabling a source disables any other source with the same `fqdn`.
 
+`boppa.app` and its subdomains are reserved for Boppa, so a package with one of them as its `fqdn` is rejected.
+
 ### `allowedUrls`
 
 A list of hosts (or full URLs, from which only the host is used) that the container is allowed to reach with `fetch()`. A request whose host matches an entry, or is a subdomain of one, is allowed. Anything else is rejected before the request is made.
