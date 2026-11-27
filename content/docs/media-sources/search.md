@@ -60,6 +60,7 @@ return {
       metadata: { any: "JSON object" }, // optional
       profiles: [{ id, name, type, lowResArtworkUrl, highResArtworkUrl }], // optional
       tracklists: [{ id, title, type, subtitle, lowResArtworkUrl, highResArtworkUrl }], // optional
+      sections: [{ title: "Intro", start: 0 }, { title: "Part Two", start: 95000 }], // optional
     },
   ],
 }
@@ -83,6 +84,20 @@ Boppa remembers a track's profiles and tracklists once it has stored the track, 
 - **Non-empty array**: Boppa replaces the track's profiles or tracklists with exactly these.
 
 So only return `[]` when you're sure the track has no profiles or tracklists, otherwise omit the field instead. An array whose entries are all missing a required field is treated as omitted. An array with some valid entries keeps the valid ones.
+
+`sections` splits one track into named parts, such as the songs in a full-album video or the chapters of an episode. Each section needs a `title` and a `start` in milliseconds from the start of the track. A section runs until the next one starts, or to the end of the track. Boppa sorts them by `start`, drops entries without a `title` or with a negative `start`, and keeps only the first of any that share a `start`. A track needs at least two sections to be shown with them. One section would cover the whole track, so it plays as a plain track.
+
+When a track has sections, Boppa shows them throughout playback:
+
+- The seek bar has a break at the start of each section, and snaps to the breaks while dragging.
+- Now Playing and the mini player title the track as `<section> | <track>`.
+- The queue lists the sections under their track. Tapping one plays from its start, and they can be dragged into a different order for this play.
+- Next and previous step between sections before moving to another track.
+- Repeat gets a third mode that loops the playing section.
+
+Moving between sections uses the player page's [`seek`](/docs/media-sources/playback/player-page#functions-boppa-calls), so a source needs nothing beyond seeking to support them.
+
+Boppa remembers a track's sections the same way as its profiles and tracklists. An omitted `sections` keeps the stored ones, and an array replaces them. Unlike profiles and tracklists, an array with no valid entries counts as `[]` and removes them.
 
 ### Profiles
 

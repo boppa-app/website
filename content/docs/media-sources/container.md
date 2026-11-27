@@ -204,12 +204,12 @@ const result = await boppa.replaceTrack(track.id, {
 // { replaced: true }, or { replaced: false, reason: "old-track-not-stored" }
 ```
 
-Tells Boppa that one of the source's tracks now lives under a new id, such as a song from a release the service took down and put out again. `replacement` is a track in the [result shape](/docs/media-sources/search#tracks) of the source's own results, with the same rules for `type`, `profiles`, `tracklists`, and `metadata`. It needs `id` and `title`, and its `id` must differ from `trackId`. When `type` is omitted, the replacement takes the replaced track's type.
+Tells Boppa that one of the source's tracks now lives under a new id, such as a song from a release the service took down and put out again. `replacement` is a track in the [result shape](/docs/media-sources/search#tracks) of the source's own results, with the same rules for `type`, `profiles`, `tracklists`, `sections`, and `metadata`. It needs `id` and `title`, and its `id` must differ from `trackId`. When `type` is omitted, the replacement takes the replaced track's type.
 
 Boppa stores the replacement and moves the old track's place onto it:
 
 - It stays in the library, in recently played, and in Likes and the user's playlists, at the old track's position. If the replacement is already stored, the two are merged, so each list holds it once.
-- It takes its profiles, tracklists, and `metadata` from `replacement` only. Nothing is copied from the old track, so a stream cached for the old id doesn't carry over, and a removed album the old track was on isn't linked to the replacement. A saved album stays in the library.
+- It takes its profiles, tracklists, sections, and `metadata` from `replacement` only. Nothing is copied from the old track, so a stream cached for the old id doesn't carry over, and a removed album the old track was on isn't linked to the replacement. A saved album stays in the library.
 - The queue and the playing track switch to the replacement in place, so playback carries on.
 
 Then the old track is removed. The whole change is made at once, so if any of it fails, nothing changes and the promise rejects.
